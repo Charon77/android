@@ -512,6 +512,9 @@ public class FileDisplayActivity extends FileActivity
             setFile(intent.getParcelableExtra(EXTRA_FILE));
             showDetails(file);
         } else if (Intent.ACTION_VIEW.equals(intent.getAction())) {
+            if (!intent.hasExtra(KEY_FILE_ID)) {
+                intent.putExtra(KEY_FILE_ID, intent.getData().getLastPathSegment());
+            }
             handleOpenFileViaIntent(intent);
         } else if (RESTART.equals(intent.getAction())) {
             finish();
