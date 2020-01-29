@@ -512,9 +512,6 @@ public class FileDisplayActivity extends FileActivity
             setFile(intent.getParcelableExtra(EXTRA_FILE));
             showDetails(file);
         } else if (Intent.ACTION_VIEW.equals(intent.getAction())) {
-            if (!intent.hasExtra(KEY_FILE_ID)) {
-                intent.putExtra(KEY_FILE_ID, intent.getData().getLastPathSegment());
-            }
             handleOpenFileViaIntent(intent);
         } else if (RESTART.equals(intent.getAction())) {
             finish();
@@ -2649,6 +2646,20 @@ public class FileDisplayActivity extends FileActivity
         }
 
         String fileId = String.valueOf(intent.getStringExtra(KEY_FILE_ID));
+
+        // If fileId is not set by KEY_FILE_ID extras, let's set it from getData, from deep linking
+        // getData() is in form of nc://directlink/f/{fileId}
+        if ("null".equals(fileId) && intent.getData() != null) {
+            if ("directlink".equals(intent.getData().getAuthority())) {
+                List<String> pathSegments = intent.getData().getPathSegments();
+                if (pathSegments.size() == 2) {
+                    if ("f".equals(pathSegments.get(0))) {
+                        fileId = pathSegments.get(1);
+                    }
+                }
+
+            }
+        }
 
         if ("null".equals(fileId)) {
             dismissLoadingDialog();
