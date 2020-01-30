@@ -2628,8 +2628,27 @@ public class FileDisplayActivity extends FileActivity
         showLoadingDialog(getString(R.string.retrieving_file));
 
         String accountName = intent.getStringExtra("KEY_ACCOUNT");
+        String fileId = String.valueOf(intent.getStringExtra(KEY_FILE_ID));
+
+        if (accountName == null && "null".equals(fileId) && intent.getData() != null) {
+            // Handle intent coming from URI
+            List<String> pathSegments = intent.getData().getPathSegments();
+
+            try {
+                // Matches /{accountName}/f/{fileId}
+                accountName = pathSegments.get(0);
+                if ("f".equals(pathSegments.get(1))) {
+                    fileId = pathSegments.get(2);
+                }
+            } catch (IndexOutOfBoundsException e) {
+                dismissLoadingDialog();
+                DisplayUtils.showSnackMessage(this, "Invalid URL");
+                return;
+            }
+        }
 
         Account newAccount;
+
         if (accountName == null) {
             newAccount = getAccount();
         } else {
@@ -2643,22 +2662,6 @@ public class FileDisplayActivity extends FileActivity
 
             setAccount(newAccount, false);
             updateAccountList();
-        }
-
-        String fileId = String.valueOf(intent.getStringExtra(KEY_FILE_ID));
-
-        // If fileId is not set by KEY_FILE_ID extras, let's set it from getData, from deep linking
-        // getData() is in form of nc://directlink/f/{fileId}
-        if ("null".equals(fileId) && intent.getData() != null) {
-            if ("directlink".equals(intent.getData().getAuthority())) {
-                List<String> pathSegments = intent.getData().getPathSegments();
-                if (pathSegments.size() == 2) {
-                    if ("f".equals(pathSegments.get(0))) {
-                        fileId = pathSegments.get(1);
-                    }
-                }
-
-            }
         }
 
         if ("null".equals(fileId)) {
