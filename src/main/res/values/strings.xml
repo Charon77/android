@@ -913,4 +913,6 @@
     <string name="edit_rich_workspace">edit folder info</string>
     <string name="create_new">Create new</string>
     <string name="editor_placeholder" translatable="false">%1$s %2$s</string>
+
+    <string name="invalid_url">Invalid URL</string>
 </resources>

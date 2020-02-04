@@ -121,8 +121,9 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="@string/login_data_own_scheme"
-                      android:host="directlink"
+                <data android:scheme="http"
+                      android:host="*"
+                      android:pathPattern="/index.php/f/.*"
                     />
             </intent-filter>
             <meta-data android:name="android.app.searchable"

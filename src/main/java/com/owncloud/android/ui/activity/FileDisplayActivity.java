@@ -176,6 +176,8 @@ public class FileDisplayActivity extends FileActivity
     public static final String TAG_PUBLIC_LINK = "PUBLIC_LINK";
     public static final String FTAG_CHOOSER_DIALOG = "CHOOSER_DIALOG";
     public static final String KEY_FILE_ID = "KEY_FILE_ID";
+    public static final String KEY_ACCOUNT = "KEY_ACCOUNT";
+
 
     private static final String KEY_WAITING_TO_PREVIEW = "WAITING_TO_PREVIEW";
     private static final String KEY_SYNC_IN_PROGRESS = "SYNC_IN_PROGRESS";
@@ -2627,22 +2629,22 @@ public class FileDisplayActivity extends FileActivity
     private void handleOpenFileViaIntent(Intent intent) {
         showLoadingDialog(getString(R.string.retrieving_file));
 
-        String accountName = intent.getStringExtra("KEY_ACCOUNT");
-        String fileId = String.valueOf(intent.getStringExtra(KEY_FILE_ID));
+        String accountName = intent.getStringExtra(KEY_ACCOUNT);
+        String fileId = intent.getStringExtra(KEY_FILE_ID);
 
-        if (accountName == null && "null".equals(fileId) && intent.getData() != null) {
+        if (accountName == null && fileId == null && intent.getData() != null) {
             // Handle intent coming from URI
             List<String> pathSegments = intent.getData().getPathSegments();
 
-            try {
-                // Matches /{accountName}/f/{fileId}
-                accountName = pathSegments.get(0);
+            if (pathSegments.size() == 3) {
+                // Matches http://{accountName}/index.php/f/{fileId}
+                accountName = intent.getData().getAuthority();
                 if ("f".equals(pathSegments.get(1))) {
                     fileId = pathSegments.get(2);
                 }
-            } catch (IndexOutOfBoundsException e) {
+            } else {
                 dismissLoadingDialog();
-                DisplayUtils.showSnackMessage(this, "Invalid URL");
+                DisplayUtils.showSnackMessage(this, getString(R.string.invalid_url));
                 return;
             }
         }
@@ -2664,7 +2666,7 @@ public class FileDisplayActivity extends FileActivity
             updateAccountList();
         }
 
-        if ("null".equals(fileId)) {
+        if (fileId == null) {
             dismissLoadingDialog();
             DisplayUtils.showSnackMessage(this, getString(R.string.error_retrieving_file));
             return;
