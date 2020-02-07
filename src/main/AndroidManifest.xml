@@ -122,6 +122,10 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="http"
+                    android:host="*"
+                    android:pathPattern="/index.php/f/.*"
+                    />
+                <data android:scheme="https"
                       android:host="*"
                       android:pathPattern="/index.php/f/.*"
                     />

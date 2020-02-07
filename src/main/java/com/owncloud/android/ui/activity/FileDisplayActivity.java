@@ -2638,10 +2638,12 @@ public class FileDisplayActivity extends FileActivity
 
             if (pathSegments.size() == 3) {
                 // Matches http://{accountName}/index.php/f/{fileId}
-                accountName = intent.getData().getAuthority();
                 if ("f".equals(pathSegments.get(1))) {
                     fileId = pathSegments.get(2);
                 }
+                String hostName = intent.getData().getHost();
+                int port = intent.getData().getPort();
+                accountName =  findAccountNameWithHostName(hostName, port);
             } else {
                 dismissLoadingDialog();
                 DisplayUtils.showSnackMessage(this, getString(R.string.invalid_url));
@@ -2683,5 +2685,33 @@ public class FileDisplayActivity extends FileActivity
                                                                           storageManager,
                                                                           this);
         fetchRemoteFileTask.execute();
+    }
+
+    private String findAccountNameWithHostName(String hostName, int port) {
+        String strPort = Integer.toString(port);
+
+        for (Account account : accountManager.getAccounts()) {
+            String accountHostPort = account.name.split("@")[1];
+
+            String accountHost = accountHostPort.split(":")[0];
+            String accountPort = accountHostPort.split(":")[1];
+
+            if (!accountHost.equals(hostName)) {
+                continue;
+            }
+
+            // Continue if only one is present
+            if (accountPort == null ^ port == -1) {
+                continue;
+            }
+
+            if (port != -1 && !accountPort.equals(strPort)) {
+                continue;
+            }
+
+            return account.name;
+
+        }
+        return null;
     }
 }
