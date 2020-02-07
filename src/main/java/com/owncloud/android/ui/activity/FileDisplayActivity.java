@@ -2643,14 +2643,18 @@ public class FileDisplayActivity extends FileActivity
                 }
                 String hostName = intent.getData().getHost();
                 int port = intent.getData().getPort();
-                accountName =  findAccountNameWithHostName(hostName, port);
+                findAccountAndOpenFile(hostName, port, fileId);
+                return;
             } else {
                 dismissLoadingDialog();
                 DisplayUtils.showSnackMessage(this, getString(R.string.invalid_url));
                 return;
             }
         }
+        openFile(accountName, fileId);
 
+    }
+    private void openFile(String accountName, String fileId) {
         Account newAccount;
 
         if (accountName == null) {
@@ -2685,10 +2689,13 @@ public class FileDisplayActivity extends FileActivity
                                                                           storageManager,
                                                                           this);
         fetchRemoteFileTask.execute();
+
     }
 
-    private String findAccountNameWithHostName(String hostName, int port) {
+    private void findAccountAndOpenFile(String hostName, int port, String fileId) {
         String strPort = Integer.toString(port);
+
+        ArrayList<String> validAccounts = new ArrayList<>();
 
         for (Account account : accountManager.getAccounts()) {
             String accountHostPort = account.name.split("@")[1];
@@ -2705,13 +2712,36 @@ public class FileDisplayActivity extends FileActivity
                 continue;
             }
 
-            if (port != -1 && !accountPort.equals(strPort)) {
-                continue;
+            if (port != -1 && accountPort.equals(strPort)) {
+                validAccounts.add(account.name);
             }
-
-            return account.name;
-
         }
-        return null;
+
+        if (validAccounts.size() == 0) {
+            openFile(getAccount().name, fileId);
+            return;
+        }
+
+        if (validAccounts.size() == 1) {
+            openFile(validAccounts.get(0), fileId);
+            return;
+        }
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+        builder
+            .setTitle(R.string.common_choose_account)
+            .setItems(validAccounts.toArray(new CharSequence[validAccounts.size()]), new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int which) {
+                    openFile(validAccounts.get(which), fileId);
+                }
+            })
+            .setOnDismissListener(new DialogInterface.OnDismissListener() {
+                @Override
+                public void onDismiss(DialogInterface dialogInterface) {
+                    dismissLoadingDialog();
+                }
+            });
+        AlertDialog dialog = builder.create();
+        dialog.show();
     }
 }
