@@ -2636,16 +2636,16 @@ public class FileDisplayActivity extends FileActivity
 
         if (accountName == null && fileId == null && intent.getData() != null) {
             // Handle intent coming from URI
+            String scheme = intent.getData().getScheme();
+            String authority = intent.getData().getAuthority();
             List<String> pathSegments = intent.getData().getPathSegments();
 
             if (pathSegments.size() == 3) {
-                // Matches http://{accountName}/index.php/f/{fileId}
+                // Matches {scheme}://{accountName}/index.php/f/{fileId}
                 if ("f".equals(pathSegments.get(1))) {
                     fileId = pathSegments.get(2);
                 }
-                String hostName = intent.getData().getHost();
-                int port = intent.getData().getPort();
-                findAccountAndOpenFile(hostName, port, fileId);
+                findAccountAndOpenFile(scheme, authority, fileId);
                 return;
             } else {
                 dismissLoadingDialog();
@@ -2694,40 +2694,17 @@ public class FileDisplayActivity extends FileActivity
 
     }
 
-    private void findAccountAndOpenFile(String hostName, int port, String fileId) {
-        String strPort = Integer.toString(port);
+    private void findAccountAndOpenFile(String scheme, String authority, String fileId) {
 
         ArrayList<String> validAccounts = new ArrayList<>();
-
-        // From foo@bar@baz.com take only baz.com
-        Pattern accountHostPortPattern = Pattern.compile("(.*)@(.*)$");
+        String queryBaseUrl = scheme + "://" + authority;
 
         for (Account account : accountManager.getAccounts()) {
-            Matcher accountHostPortMatches = accountHostPortPattern.matcher(account.name);
-
-            if (! accountHostPortMatches.matches()) {
-                continue;
-            }
-            if (accountHostPortMatches.groupCount() != 2) {
-                continue;
-            }
-
-            String accountHostPort = accountHostPortMatches.group(2);
-
-            String accountHost = accountHostPort.split(":")[0];
-            String accountPort = accountHostPort.split(":")[1];
-
-            if (!accountHost.equals(hostName)) {
-                continue;
-            }
-
-            // Continue if only one is present
-            if (accountPort == null ^ port == -1) {
-                continue;
-            }
-
-            if (port != -1 && accountPort.equals(strPort)) {
-                validAccounts.add(account.name);
+            try {
+                if (AccountUtils.getBaseUrlForAccount(this, account).equals(queryBaseUrl)) {
+                    validAccounts.add(account.name);
+                }
+            } catch (AccountUtils.AccountNotFoundException ignored) {
             }
         }
 
