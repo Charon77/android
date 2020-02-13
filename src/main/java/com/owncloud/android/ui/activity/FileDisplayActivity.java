@@ -135,6 +135,8 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 import javax.inject.Inject;
@@ -2697,8 +2699,20 @@ public class FileDisplayActivity extends FileActivity
 
         ArrayList<String> validAccounts = new ArrayList<>();
 
+        // From foo@bar@baz.com take only baz.com
+        Pattern accountHostPortPattern = Pattern.compile("(.*)@(.*)$");
+
         for (Account account : accountManager.getAccounts()) {
-            String accountHostPort = account.name.split("@")[1];
+            Matcher accountHostPortMatches = accountHostPortPattern.matcher(account.name);
+
+            if (! accountHostPortMatches.matches()) {
+                continue;
+            }
+            if (accountHostPortMatches.groupCount() != 2) {
+                continue;
+            }
+
+            String accountHostPort = accountHostPortMatches.group(2);
 
             String accountHost = accountHostPort.split(":")[0];
             String accountPort = accountHostPort.split(":")[1];
