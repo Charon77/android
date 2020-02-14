@@ -2709,8 +2709,12 @@ public class FileDisplayActivity extends FileActivity
         }
 
         if (validAccounts.size() == 0) {
-            openFile(getAccount().name, fileId);
-            return;
+            if (getUser().isPresent()) {
+                openFile(getUser().get().getAccountName() , fileId);
+                return;
+            } else {
+                return;
+            }
         }
 
         if (validAccounts.size() == 1) {
