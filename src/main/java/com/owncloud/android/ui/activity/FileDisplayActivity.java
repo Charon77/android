@@ -2629,21 +2629,20 @@ public class FileDisplayActivity extends FileActivity
     private void handleOpenFileViaIntent(Intent intent) {
         showLoadingDialog(getString(R.string.retrieving_file));
 
-        String accountName = intent.getStringExtra(KEY_ACCOUNT);
+        String userName = intent.getStringExtra(KEY_ACCOUNT);
         String fileId = intent.getStringExtra(KEY_FILE_ID);
 
-        if (accountName == null && fileId == null && intent.getData() != null) {
+        if (userName == null && fileId == null && intent.getData() != null) {
             // Handle intent coming from URI
-            String scheme = intent.getData().getScheme();
             String authority = intent.getData().getAuthority();
             List<String> pathSegments = intent.getData().getPathSegments();
 
             if (pathSegments.size() == 3) {
-                // Matches {scheme}://{accountName}/index.php/f/{fileId}
+                // Matches {scheme}://{authority}/index.php/f/{fileId}
                 if ("f".equals(pathSegments.get(1))) {
                     fileId = pathSegments.get(2);
                 }
-                findAccountAndOpenFile(scheme, authority, fileId);
+                findAccountAndOpenFile(authority, fileId);
                 return;
             } else {
                 dismissLoadingDialog();
@@ -2651,25 +2650,27 @@ public class FileDisplayActivity extends FileActivity
                 return;
             }
         }
-        openFile(accountName, fileId);
+        openFile(userName, fileId);
 
     }
-    private void openFile(String accountName, String fileId) {
-        Account newAccount;
+    private void openFile(String userName, String fileId) {
+        Optional<User> optionalNewUser;
+        User user;
 
-        if (accountName == null) {
-            newAccount = getAccount();
+        if (userName == null) {
+            optionalNewUser = getUser();
         } else {
-            newAccount = getUserAccountManager().getAccountByName(accountName);
+            optionalNewUser = getUserAccountManager().getUser(userName);
+        }
 
-            if (newAccount == null) {
-                dismissLoadingDialog();
-                DisplayUtils.showSnackMessage(this, getString(R.string.associated_account_not_found));
-                return;
-            }
-
-            setAccount(newAccount, false);
+        if (optionalNewUser.isPresent()) {
+            user = optionalNewUser.get();
+            setUser(user);
             updateAccountList();
+        } else {
+            dismissLoadingDialog();
+            DisplayUtils.showSnackMessage(this, getString(R.string.associated_account_not_found));
+            return;
         }
 
         if (fileId == null) {
@@ -2681,10 +2682,10 @@ public class FileDisplayActivity extends FileActivity
         FileDataStorageManager storageManager = getStorageManager();
 
         if (storageManager == null) {
-            storageManager = new FileDataStorageManager(newAccount, getContentResolver());
+            storageManager = new FileDataStorageManager(user.toPlatformAccount(), getContentResolver());
         }
 
-        FetchRemoteFileTask fetchRemoteFileTask = new FetchRemoteFileTask(newAccount,
+        FetchRemoteFileTask fetchRemoteFileTask = new FetchRemoteFileTask(user.toPlatformAccount(),
                                                                           fileId,
                                                                           storageManager,
                                                                           this);
@@ -2692,49 +2693,46 @@ public class FileDisplayActivity extends FileActivity
 
     }
 
-    private void findAccountAndOpenFile(String scheme, String authority, String fileId) {
+    private void findAccountAndOpenFile(String authority, String fileId) {
 
-        ArrayList<String> validAccounts = new ArrayList<>();
-        String queryBaseUrl = scheme + "://" + authority;
+        ArrayList<User> validUsers = new ArrayList<>();
 
-        for (Account account : accountManager.getAccounts()) {
-            try {
-                if (AccountUtils.getBaseUrlForAccount(this, account).equals(queryBaseUrl)) {
-                    validAccounts.add(account.name);
-                }
-            } catch (AccountUtils.AccountNotFoundException ignored) {
+        for (User user : getUserAccountManager().getAllUsers()) {
+            if (user.getServer().getUri().getAuthority().equals(authority)) {
+                validUsers.add(user);
             }
         }
 
-        if (validAccounts.size() == 0) {
+        if (validUsers.size() == 0) {
             if (getUser().isPresent()) {
-                openFile(getUser().get().getAccountName() , fileId);
-                return;
-            } else {
-                return;
+                openFile(getUser().get().getAccountName(), fileId);
             }
+            return;
         }
 
-        if (validAccounts.size() == 1) {
-            openFile(validAccounts.get(0), fileId);
+        if (validUsers.size() == 1) {
+            openFile(validUsers.get(0).getAccountName(), fileId);
             return;
+        }
+
+        ArrayList<String> validUserNames = new ArrayList<>();
+
+        for (User user : validUsers) {
+            validUserNames.add(user.getAccountName());
         }
 
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         builder
             .setTitle(R.string.common_choose_account)
-            .setItems(validAccounts.toArray(new CharSequence[validAccounts.size()]), new DialogInterface.OnClickListener() {
+            .setItems(validUserNames.toArray(new CharSequence[validUserNames.size()]),
+                      new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int which) {
-                    openFile(validAccounts.get(which), fileId);
-                }
-            })
-            .setOnDismissListener(new DialogInterface.OnDismissListener() {
-                @Override
-                public void onDismiss(DialogInterface dialogInterface) {
-                    dismissLoadingDialog();
+                    openFile(validUsers.get(which).getAccountName(), fileId);
+                    showLoadingDialog(getString(R.string.retrieving_file));
                 }
             });
         AlertDialog dialog = builder.create();
+        dismissLoadingDialog();
         dialog.show();
     }
 }
