@@ -135,6 +135,8 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 import javax.inject.Inject;
@@ -2635,15 +2637,15 @@ public class FileDisplayActivity extends FileActivity
         if (userName == null && fileId == null && intent.getData() != null) {
             // Handle intent coming from URI
             String authority = intent.getData().getAuthority();
-            List<String> pathSegments = intent.getData().getPathSegments();
 
-            if (pathSegments.size() == 3) {
-                // Matches {scheme}://{authority}/index.php/f/{fileId}
-                if ("f".equals(pathSegments.get(1))) {
-                    fileId = pathSegments.get(2);
+            Pattern pattern  = Pattern.compile(".*/index\\.php/([f])/([0-9]+)$");
+            Matcher matcher = pattern.matcher(intent.getData().getPath());
+            if (matcher.matches()) {
+                if ("f".equals(matcher.group(1))) {
+                    fileId = matcher.group(2);
+                    findAccountAndOpenFile(authority, fileId);
+                    return;
                 }
-                findAccountAndOpenFile(authority, fileId);
-                return;
             } else {
                 dismissLoadingDialog();
                 DisplayUtils.showSnackMessage(this, getString(R.string.invalid_url));
