@@ -2636,14 +2636,14 @@ public class FileDisplayActivity extends FileActivity
 
         if (userName == null && fileId == null && intent.getData() != null) {
             // Handle intent coming from URI
-            String authority = intent.getData().getAuthority();
 
-            Pattern pattern  = Pattern.compile(".*/index\\.php/([f])/([0-9]+)$");
-            Matcher matcher = pattern.matcher(intent.getData().getPath());
+            Pattern pattern  = Pattern.compile("(.*)/index\\.php/([f])/([0-9]+)$");
+            Matcher matcher = pattern.matcher(intent.getData().toString());
             if (matcher.matches()) {
-                if ("f".equals(matcher.group(1))) {
-                    fileId = matcher.group(2);
-                    findAccountAndOpenFile(authority, fileId);
+                String uri = matcher.group(1);
+                if ("f".equals(matcher.group(2))) {
+                    fileId = matcher.group(3);
+                    findAccountAndOpenFile(uri, fileId);
                     return;
                 }
             } else {
@@ -2695,20 +2695,19 @@ public class FileDisplayActivity extends FileActivity
 
     }
 
-    private void findAccountAndOpenFile(String authority, String fileId) {
+    private void findAccountAndOpenFile(String uri, String fileId) {
 
         ArrayList<User> validUsers = new ArrayList<>();
 
         for (User user : getUserAccountManager().getAllUsers()) {
-            if (user.getServer().getUri().getAuthority().equals(authority)) {
+            if (user.getServer().getUri().toString().equals(uri)) {
                 validUsers.add(user);
             }
         }
 
         if (validUsers.size() == 0) {
-            if (getUser().isPresent()) {
-                openFile(getUser().get().getAccountName(), fileId);
-            }
+            dismissLoadingDialog();
+            DisplayUtils.showSnackMessage(this, getString(R.string.associated_account_not_found));
             return;
         }
 
